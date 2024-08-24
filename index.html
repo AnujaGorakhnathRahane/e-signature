@@ -21,6 +21,7 @@
         canvas {
             border: 1px solid #000;
             background-color: #fff;
+            touch-action: none; /* Prevent default touch actions */
         }
 
         button {
@@ -52,13 +53,15 @@
             let lastX = 0;
             let lastY = 0;
 
-            canvas.addEventListener('mousedown', (e) => {
+            function startDrawing(e) {
                 drawing = true;
-                [lastX, lastY] = [e.offsetX, e.offsetY];
-            });
+                [lastX, lastY] = getCoordinates(e);
+            }
 
-            canvas.addEventListener('mousemove', (e) => {
+            function draw(e) {
                 if (!drawing) return;
+
+                const [x, y] = getCoordinates(e);
 
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
@@ -67,19 +70,42 @@
 
                 ctx.beginPath();
                 ctx.moveTo(lastX, lastY);
-                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.lineTo(x, y);
                 ctx.stroke();
 
-                [lastX, lastY] = [e.offsetX, e.offsetY];
+                [lastX, lastY] = [x, y];
+            }
+
+            function stopDrawing() {
+                drawing = false;
+            }
+
+            function getCoordinates(e) {
+                if (e.touches) {
+                    // If touch event, get the coordinates from the first touch
+                    return [e.touches[0].clientX - canvas.offsetLeft, e.touches[0].clientY - canvas.offsetTop];
+                } else {
+                    // If mouse event, get the coordinates directly
+                    return [e.offsetX, e.offsetY];
+                }
+            }
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevents the default touch action
+                startDrawing(e);
             });
 
-            canvas.addEventListener('mouseup', () => {
-                drawing = false;
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Prevents the default touch action
+                draw(e);
             });
 
-            canvas.addEventListener('mouseout', () => {
-                drawing = false;
-            });
+            canvas.addEventListener('touchend', stopDrawing);
 
             document.getElementById('clear-btn').addEventListener('click', () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
